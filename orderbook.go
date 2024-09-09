@@ -17,3 +17,8 @@ type PriceLevel struct {
 type OrderBook struct {
 	PriceLevels []*PriceLevel
 }
+
+func NewOrderBook(size int) *OrderBook {
+	return &OrderBook{PriceLevels: make([]*PriceLevel, size)}
+
+}
