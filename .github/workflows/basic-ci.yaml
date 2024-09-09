@@ -2,9 +2,8 @@ name: Basic Go CI
 
 on:
   push:
-    branches: [ "main" ]
-    paths:
-      - '**.go'
+    branches: 
+    - "main"
 
 jobs:
   build:
