@@ -5,7 +5,6 @@ const MAX_PRICE = 1000
 // Order represents a buy or sell order in the order book.
 type Order struct {
 	Id     int
-	Side   string
 	IsBuy  bool
 	Price  int
 	Volume int
@@ -26,15 +25,30 @@ type OrderBook struct {
 }
 
 func NewOrderBook(size int) *OrderBook {
-	return &OrderBook{BestBid: 0,
+	ob := OrderBook{
+		BestBid:     0,
 		BestOffer:   MAX_PRICE,
-		PriceLevels: make([]*PriceLevel, size)}
+		PriceLevels: make([]*PriceLevel, size),
+	}
+	for i := 0; i < size; i++ {
+		ob.PriceLevels[i] = &PriceLevel{
+			Head: nil,
+			Tail: nil,
+		}
+	}
+	return &ob
 
 }
 
 func (ob *OrderBook) AddOrder(o *Order) {
-	ob.PriceLevels[o.Price].Tail.Next = o
-	ob.PriceLevels[o.Price].Tail = o
+	pl := ob.PriceLevels[o.Price]
+	if pl.Head == nil {
+		pl.Head = o
+		pl.Tail = o
+	} else {
+		pl.Tail.Next = o
+		pl.Tail = o
+	}
 }
 
 func getLevelVolume(pl *PriceLevel) int {
