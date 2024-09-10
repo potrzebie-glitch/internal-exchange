@@ -1,5 +1,8 @@
 package main
 
+const MAX_PRICE = 1000
+
+// Order represents a buy or sell order in the order book.
 type Order struct {
 	Id     int
 	Side   string
