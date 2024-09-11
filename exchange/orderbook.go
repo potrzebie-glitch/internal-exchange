@@ -31,10 +31,10 @@ func NewOrderBook(size int) *OrderBook {
 	ob := OrderBook{
 		BestBid:   0,
 		BestOffer: MAX_PRICE,
-		bids:      make([]*PriceLevel, size),
-		asks:      make([]*PriceLevel, size),
+		bids:      make([]*PriceLevel, size+1),
+		asks:      make([]*PriceLevel, size+1),
 	}
-	for i := 0; i < size; i++ {
+	for i := 0; i <= size; i++ {
 		ob.bids[i] = &PriceLevel{
 			Head: nil,
 			Tail: nil,
