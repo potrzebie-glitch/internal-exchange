@@ -69,7 +69,7 @@ func TestAggressiveBidTakesOutPriceLevel(t *testing.T) {
 		Next:   nil,
 	}
 
-	ob := NewOrderBook(4)
+	ob := NewOrderBook(5)
 	ob.InsertOrder(&o1)
 	ob.InsertOrder(&o2)
 	ob.InsertOrder(&o3)
