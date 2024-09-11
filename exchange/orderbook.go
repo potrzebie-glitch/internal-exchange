@@ -2,7 +2,7 @@ package exchange
 
 import "fmt"
 
-const MAX_PRICE = 1000
+const MAX_PRICE = 1000000
 
 // Order represents a buy or sell order in the order book.
 type Order struct {
@@ -124,7 +124,7 @@ func (pl *PriceLevel) RemoveOrder(orderId int) bool {
 // if there is any bid, if so return that price, if not, check next
 func nextBestBid(ob *OrderBook) int {
 	for price := ob.BestOffer - 1; price >= 0; price-- {
-		if ob.bids[price] != nil {
+		if ob.bids[price].Head != nil {
 			return price
 		}
 	}
@@ -135,8 +135,8 @@ func nextBestBid(ob *OrderBook) int {
 // Start from current best offer, increment the price and check
 // if there is any offer, if so return that price, if not, check next
 func nextBestOffer(ob *OrderBook) int {
-	for price := ob.BestOffer - 1; price >= 0; price++ {
-		if ob.asks[price] != nil {
+	for price := ob.BestOffer + 1; price <= MAX_PRICE; price++ {
+		if ob.asks[price].Head != nil {
 			return price
 		}
 	}
