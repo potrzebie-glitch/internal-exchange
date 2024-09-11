@@ -27,14 +27,14 @@ type OrderBook struct {
 	asks      []*PriceLevel
 }
 
-func NewOrderBook(size int) *OrderBook {
+func NewOrderBook() *OrderBook {
 	ob := OrderBook{
 		BestBid:   0,
 		BestOffer: MAX_PRICE,
-		bids:      make([]*PriceLevel, size+1),
-		asks:      make([]*PriceLevel, size+1),
+		bids:      make([]*PriceLevel, MAX_PRICE),
+		asks:      make([]*PriceLevel, MAX_PRICE),
 	}
-	for i := 0; i <= size; i++ {
+	for i := 0; i < int(MAX_PRICE); i++ {
 		ob.bids[i] = &PriceLevel{
 			Head: nil,
 			Tail: nil,

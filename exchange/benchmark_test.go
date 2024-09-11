@@ -3,16 +3,31 @@ package exchange
 
 import (
 	"math/rand"
+	"os"
+	"runtime/pprof"
 	"testing"
 	"time"
 )
 
 func BenchmarkProcessOrder(b *testing.B) {
+
+	cpuFile, err := os.Create("cpu.prof")
+	if err != nil {
+		b.Fatal("could not create CPU profile:", err)
+	}
+	defer cpuFile.Close()
+
+	// Start CPU profiling
+	if err := pprof.StartCPUProfile(cpuFile); err != nil {
+		b.Fatal("could not start CPU profile:", err)
+	}
+	defer pprof.StopCPUProfile()
+
 	// Seed the random number generator for randomness
 	rand.Seed(time.Now().UnixNano())
 
 	// Create a sample OrderBook and MatchingEngine
-	orderBook := NewOrderBook(MAX_PRICE)
+	orderBook := NewOrderBook()
 	engine := NewMatchingEngine(orderBook)
 
 	// Benchmarking loop - runs b.N times

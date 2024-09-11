@@ -5,15 +5,6 @@ import (
 	"testing"
 )
 
-func TestNewOrderBookSizeCorrect(t *testing.T) {
-	desired_size := 10000
-	ob := NewOrderBook(desired_size)
-	if len(ob.bids) != desired_size {
-		t.Errorf("Expected size %v but got %v ", desired_size, len(ob.bids))
-	}
-
-}
-
 func TestOrderBookVolumeAggregateCorrect(t *testing.T) {
 	o1 := Order{
 		Id:     1,
@@ -29,7 +20,7 @@ func TestOrderBookVolumeAggregateCorrect(t *testing.T) {
 		Volume: 1,
 		Next:   nil,
 	}
-	ob := NewOrderBook(4)
+	ob := NewOrderBook()
 	ob.InsertOrder(&o1)
 	ob.InsertOrder(&o2)
 	pl := ob.bids[3]
@@ -69,7 +60,7 @@ func TestAggressiveBidTakesOutPriceLevel(t *testing.T) {
 		Next:   nil,
 	}
 
-	ob := NewOrderBook(5)
+	ob := NewOrderBook()
 	ob.InsertOrder(&o1)
 	ob.InsertOrder(&o2)
 	ob.InsertOrder(&o3)
