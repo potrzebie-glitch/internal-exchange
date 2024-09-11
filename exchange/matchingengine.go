@@ -27,14 +27,15 @@ func NewMatchingEngine(ob *OrderBook) MatchingEngine {
 }
 
 func (engine *MatchingEngine) ProcessOrder(order *Order) {
-	if order.IsBuy {
+	if order.IsBuy && order.Price >= engine.OrderBook.BestOffer {
 		for price := engine.OrderBook.BestOffer; price >= order.Price; price-- {
 			engine.processTrades(order, price)
 			if order.Volume == 0 {
 				break
 			}
 		}
-	} else {
+	}
+	if !order.IsBuy && order.Price <= engine.OrderBook.BestBid {
 		for price := engine.OrderBook.BestBid; price <= order.Price; price++ {
 			engine.processTrades(order, price)
 			if order.Volume == 0 {
@@ -67,9 +68,6 @@ func (engine *MatchingEngine) processTrades(o *Order, p int) {
 					if !success {
 						fmt.Printf("Warning - could not remove order %v", currentOrder.Id)
 					}
-					nextBestAsk := nextBestOffer(engine.OrderBook)
-					engine.OrderBook.BestOffer = nextBestAsk
-
 				}
 			}
 		}
@@ -84,10 +82,14 @@ func (engine *MatchingEngine) processTrades(o *Order, p int) {
 					if !success {
 						fmt.Printf("Warning - could not remove order %v", currentOrder.Id)
 					}
-					//if there is no more order around, then update best bid
-					nextBestBid := nextBestBid(engine.OrderBook)
-					engine.OrderBook.BestBid = nextBestBid
 				}
+			}
+		}
+		if pl.Head == nil {
+			if o.IsBuy {
+				engine.OrderBook.BestOffer = nextBestOffer(engine.OrderBook)
+			} else {
+				engine.OrderBook.BestBid = nextBestBid(engine.OrderBook)
 			}
 		}
 		currentOrder = currentOrder.Next
