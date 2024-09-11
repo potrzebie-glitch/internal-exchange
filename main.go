@@ -1,34 +1,31 @@
 package main
 
-import "internal-exchange/exchange"
+import (
+	"fmt"
+	"internal-exchange/exchange"
+	"math/rand"
+	"time"
+)
+
+const ITERATIONS = 10000000
 
 func main() {
-
-	o1 := exchange.Order{
-		Id:     1,
-		IsBuy:  false,
-		Price:  3,
-		Volume: 1,
-		Next:   nil,
+	rand.Seed(time.Now().UnixNano())
+	orderBook := exchange.NewOrderBook(exchange.MAX_PRICE)
+	engine := exchange.NewMatchingEngine(orderBook)
+	start := time.Now()
+	for i := 0; i < ITERATIONS; i++ {
+		isBuy := rand.Intn(2) == 1
+		price := rand.Intn(21) + 90
+		order := &exchange.Order{
+			Id:     i,
+			IsBuy:  isBuy,
+			Price:  price,
+			Volume: 10,
+		}
+		engine.ProcessOrder(order)
 	}
-	o2 := exchange.Order{
-		Id:     2,
-		IsBuy:  false,
-		Price:  3,
-		Volume: 1,
-		Next:   nil,
-	}
-	ob := exchange.NewOrderBook(4)
-	ob.InsertOrder(&o1)
-	ob.InsertOrder(&o2)
-	engine := exchange.NewMatchingEngine(ob)
-	o3 := exchange.Order{
-		Id:     3,
-		IsBuy:  true,
-		Price:  3,
-		Volume: 1,
-		Next:   nil,
-	}
-	engine.ProcessOrder(&o3)
+	duration := time.Since(start)
+	fmt.Printf("Processing %v orders takes %v ", ITERATIONS, duration)
 
 }
