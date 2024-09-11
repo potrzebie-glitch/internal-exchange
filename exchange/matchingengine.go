@@ -30,7 +30,7 @@ func NewMatchingEngine(ob *OrderBook) MatchingEngine {
 
 func (engine *MatchingEngine) ProcessOrder(order *Order) {
 	if order.IsBuy && order.Price >= engine.OrderBook.BestOffer {
-		for price := engine.OrderBook.BestOffer; price >= order.Price; price-- {
+		for price := engine.OrderBook.BestOffer; price <= order.Price; price++ {
 			engine.processTrades(order, price)
 			if order.Volume == 0 {
 				break
@@ -38,7 +38,7 @@ func (engine *MatchingEngine) ProcessOrder(order *Order) {
 		}
 	}
 	if !order.IsBuy && order.Price <= engine.OrderBook.BestBid {
-		for price := engine.OrderBook.BestBid; price <= order.Price; price++ {
+		for price := engine.OrderBook.BestBid; price >= order.Price; price-- {
 			engine.processTrades(order, price)
 			if order.Volume == 0 {
 				break
