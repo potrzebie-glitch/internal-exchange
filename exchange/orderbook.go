@@ -2,7 +2,7 @@ package exchange
 
 import "fmt"
 
-const MAX_PRICE = 10000000
+const MAX_PRICE = 1000
 
 // Order represents a buy or sell order in the order book.
 type Order struct {
