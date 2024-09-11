@@ -2,6 +2,7 @@
 package exchange
 
 import (
+	"internal-exchange/exchange"
 	"math/rand"
 	"testing"
 	"time"
@@ -12,7 +13,7 @@ func BenchmarkProcessOrder(b *testing.B) {
 	rand.Seed(time.Now().UnixNano())
 
 	// Create a sample OrderBook and MatchingEngine
-	orderBook := NewOrderBook(1000)
+	orderBook := NewOrderBook(exchange.MAX_PRICE)
 	engine := NewMatchingEngine(orderBook)
 
 	// Benchmarking loop - runs b.N times
