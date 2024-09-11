@@ -1,7 +1,5 @@
 package exchange
 
-import "fmt"
-
 const MAX_PRICE = 1000000
 
 // Order represents a buy or sell order in the order book.
@@ -123,23 +121,25 @@ func (pl *PriceLevel) RemoveOrder(orderId int) bool {
 // Start from current best bid, decrement the price and check
 // if there is any bid, if so return that price, if not, check next
 func nextBestBid(ob *OrderBook) int {
-	for price := ob.BestOffer - 1; price >= 0; price-- {
-		if ob.bids[price].Head != nil {
-			return price
+	if ob.BestBid > 0 {
+		for price := ob.BestOffer - 1; price > 0; price-- {
+			if ob.bids[price].Head != nil {
+				return price
+			}
 		}
 	}
-	fmt.Println("Panic mode: no bids found")
 	return 0
 }
 
 // Start from current best offer, increment the price and check
 // if there is any offer, if so return that price, if not, check next
 func nextBestOffer(ob *OrderBook) int {
-	for price := ob.BestOffer + 1; price <= MAX_PRICE; price++ {
-		if ob.asks[price].Head != nil {
-			return price
+	if ob.BestOffer < MAX_PRICE {
+		for price := ob.BestOffer + 1; price < MAX_PRICE; price++ {
+			if ob.asks[price].Head != nil {
+				return price
+			}
 		}
 	}
-	fmt.Println("Panic mode: no offers found")
 	return MAX_PRICE
 }
