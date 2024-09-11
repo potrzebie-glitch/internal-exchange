@@ -1,6 +1,8 @@
 package exchange
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Trade represents the transaction resulting from a matching bid and offer.
 type Trade struct {
@@ -14,11 +16,11 @@ type Trade struct {
 // also issues trades.
 type MatchingEngine struct {
 	OrderBook   *OrderBook
-	TradeAction chan<- Trade
+	TradeAction chan Trade
 }
 
 func NewMatchingEngine(ob *OrderBook) MatchingEngine {
-	tradeChan := make(chan Trade)
+	tradeChan := make(chan Trade, 10)
 	return MatchingEngine{
 		OrderBook:   ob,
 		TradeAction: tradeChan,
@@ -62,6 +64,18 @@ func (engine *MatchingEngine) processTrades(o *Order, p int) {
 				qty := min(o.Volume, currentOrder.Volume)
 				o.Volume -= qty
 				currentOrder.Volume -= qty
+				trade := Trade{
+					OrderId:  currentOrder.Id,
+					Price:    currentOrder.Price,
+					Volume:   qty,
+					FillTime: 1,
+				}
+
+				select {
+				case engine.TradeAction <- trade:
+				default:
+					//fmt.Println("TradeAction channel is full, dropping trade")
+				}
 
 				if currentOrder.Volume == 0 {
 					success := pl.RemoveOrder(currentOrder.Id)
@@ -77,6 +91,17 @@ func (engine *MatchingEngine) processTrades(o *Order, p int) {
 				qty := min(o.Volume, currentOrder.Volume)
 				o.Volume -= qty
 				currentOrder.Volume -= qty
+				trade := Trade{
+					OrderId:  currentOrder.Id,
+					Price:    currentOrder.Price,
+					Volume:   qty,
+					FillTime: 1,
+				}
+				select {
+				case engine.TradeAction <- trade:
+				default:
+					//fmt.Println("TradeAction channel is full, dropping trade")
+				}
 				if currentOrder.Volume == 0 {
 					success := pl.RemoveOrder(currentOrder.Id)
 					if !success {
@@ -101,4 +126,14 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func (engine *MatchingEngine) StartTradeProcessor() {
+	go func() {
+		for trade := range engine.TradeAction {
+			// Pipe the trade to stdout
+			fmt.Printf("Trade executed: OrderId: %d, Price: %d, Volume: %d, FillTime: %d\n",
+				trade.OrderId, trade.Price, trade.Volume, trade.FillTime)
+		}
+	}()
 }
