@@ -24,7 +24,8 @@ func BenchmarkProcessOrder(b *testing.B) {
 	defer pprof.StopCPUProfile()
 
 	// Seed the random number generator for randomness
-	rand.Seed(time.Now().UnixNano())
+	src := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(src)
 
 	// Create a sample OrderBook and MatchingEngine
 	orderBook := NewOrderBook()
@@ -33,10 +34,10 @@ func BenchmarkProcessOrder(b *testing.B) {
 	// Benchmarking loop - runs b.N times
 	for i := 0; i < b.N; i++ {
 		// Randomize whether it's a buy or sell order (true = buy, false = sell)
-		isBuy := rand.Intn(2) == 1
+		isBuy := r.Intn(2) == 1
 
 		// Randomize the price between 90 and 110
-		price := rand.Intn(21) + 90 // Generates a price between 90 and 110
+		price := r.Intn(21) + 90 // Generates a price between 90 and 110
 
 		// Create a randomized order
 		order := &Order{
