@@ -1,6 +1,7 @@
 package exchange
 
 const MAX_PRICE = 1000000
+const MIN_PRICE = 0
 
 // Order represents a buy or sell order in the order book.
 type Order struct {
@@ -119,26 +120,24 @@ func (pl *PriceLevel) RemoveOrder(orderId int) bool {
 }
 
 // Start from current best bid, decrement the price and check
-// if there is any bid, if so return that price, if not, check next
+// if there is any bid, if so return that price, if not, check next.
+// If no valid bid found, return MIN_PRICE.
 func nextBestBid(ob *OrderBook) int {
-	if ob.BestBid > 0 {
-		for price := ob.BestOffer - 1; price > 0; price-- {
-			if ob.bids[price].Head != nil {
-				return price
-			}
+	for price := ob.BestBid - 1; price > MIN_PRICE; price-- {
+		if level := ob.bids[price]; level != nil && level.Head != nil {
+			return price
 		}
 	}
-	return 0
+	return MIN_PRICE
 }
 
 // Start from current best offer, increment the price and check
-// if there is any offer, if so return that price, if not, check next
+// if there is any offer, if so return that price, if not, check next.
+// If no valid offer found, return MAX_PRICE.
 func nextBestOffer(ob *OrderBook) int {
-	if ob.BestOffer < MAX_PRICE {
-		for price := ob.BestOffer + 1; price < MAX_PRICE; price++ {
-			if ob.asks[price].Head != nil {
-				return price
-			}
+	for price := ob.BestOffer + 1; price < MAX_PRICE; price++ {
+		if level := ob.asks[price]; level != nil && level.Head != nil {
+			return price
 		}
 	}
 	return MAX_PRICE
