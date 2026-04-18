@@ -45,14 +45,14 @@ func TestAggressiveBidTakesOutPriceLevel(t *testing.T) {
 	}
 
 	// Two trades should have been generated
-	if got := len(me.TradeAction); got != 2 {
-		t.Errorf("expected 2 trades in channel, got %d", got)
+	if got := me.Ring.Len(); got != 2 {
+		t.Errorf("expected 2 trades in ring, got %d", got)
 	}
-	trade1 := <-me.TradeAction
+	trade1, _ := me.Ring.Pop()
 	if trade1.OrderId != 1 || trade1.Volume != 1 {
 		t.Errorf("unexpected first trade: %+v", trade1)
 	}
-	trade2 := <-me.TradeAction
+	trade2, _ := me.Ring.Pop()
 	if trade2.OrderId != 2 || trade2.Volume != 1 {
 		t.Errorf("unexpected second trade: %+v", trade2)
 	}

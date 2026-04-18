@@ -1,6 +1,9 @@
 package exchange
 
-import "fmt"
+import (
+	"fmt"
+	"sync/atomic"
+)
 
 // Trade represents the transaction resulting from a matching bid and offer.
 type Trade struct {
@@ -10,18 +13,52 @@ type Trade struct {
 	FillTime int
 }
 
+const ringSize = 1 << 10
+const ringMask = ringSize - 1
+
+// RingBuffer is a lock-free SPSC queue. head is written only by the producer,
+// tail only by the consumer — no CAS needed.
+type RingBuffer struct {
+	slots [ringSize]Trade
+	_     [64]byte       // pad to separate head from slots cache line
+	head  atomic.Uint64  // producer index
+	_     [56]byte       // pad to separate head and tail cache lines
+	tail  atomic.Uint64  // consumer index
+}
+
+func (r *RingBuffer) Push(t Trade) bool {
+	head := r.head.Load()
+	if head-r.tail.Load() >= ringSize {
+		return false
+	}
+	r.slots[head&ringMask] = t
+	r.head.Store(head + 1)
+	return true
+}
+
+func (r *RingBuffer) Pop() (Trade, bool) {
+	tail := r.tail.Load()
+	if r.head.Load() == tail {
+		return Trade{}, false
+	}
+	t := r.slots[tail&ringMask]
+	r.tail.Store(tail + 1)
+	return t, true
+}
+
+func (r *RingBuffer) Len() int {
+	return int(r.head.Load() - r.tail.Load())
+}
+
 // MatchingEngine updates the state of the orderbook when new orders come in. It
 // also issues trades.
 type MatchingEngine struct {
-	OrderBook   *OrderBook
-	TradeAction chan Trade
+	OrderBook *OrderBook
+	Ring      RingBuffer
 }
 
 func NewMatchingEngine(ob *OrderBook) MatchingEngine {
-	return MatchingEngine{
-		OrderBook:   ob,
-		TradeAction: make(chan Trade, 10),
-	}
+	return MatchingEngine{OrderBook: ob}
 }
 
 func (engine *MatchingEngine) ProcessOrder(order *Order) {
@@ -61,15 +98,12 @@ func (engine *MatchingEngine) processTrades(o *Order, p int) {
 		currentOrder.Volume -= qty
 		pl.TotalVolume -= qty
 
-		select {
-		case engine.TradeAction <- Trade{
+		engine.Ring.Push(Trade{
 			OrderId:  currentOrder.Id,
 			Price:    currentOrder.Price,
 			Volume:   qty,
 			FillTime: 1,
-		}:
-		default:
-		}
+		})
 
 		if currentOrder.Volume == 0 {
 			pl.Head = next
@@ -91,10 +125,10 @@ func (engine *MatchingEngine) processTrades(o *Order, p int) {
 
 func (engine *MatchingEngine) StartTradeProcessor(verbose bool) {
 	go func() {
-		for trade := range engine.TradeAction {
-			if verbose {
+		for {
+			if t, ok := engine.Ring.Pop(); ok && verbose {
 				fmt.Printf("Trade executed: OrderId: %d, Price: %d, Volume: %d, FillTime: %d\n",
-					trade.OrderId, trade.Price, trade.Volume, trade.FillTime)
+					t.OrderId, t.Price, t.Volume, t.FillTime)
 			}
 		}
 	}()
