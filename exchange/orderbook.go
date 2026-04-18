@@ -1,7 +1,7 @@
 package exchange
 
-const MAX_PRICE = 1000000
-const MIN_PRICE = 0
+const MaxPrice = 1000000
+const MinPrice = 0
 
 // Order represents a buy or sell order in the order book.
 type Order struct {
@@ -28,23 +28,16 @@ type OrderBook struct {
 
 func NewOrderBook() *OrderBook {
 	ob := OrderBook{
-		BestBid:   0,
-		BestOffer: MAX_PRICE,
-		bids:      make([]*PriceLevel, MAX_PRICE),
-		asks:      make([]*PriceLevel, MAX_PRICE),
+		BestBid:   MinPrice,
+		BestOffer: MaxPrice,
+		bids:      make([]*PriceLevel, MaxPrice),
+		asks:      make([]*PriceLevel, MaxPrice),
 	}
-	for i := 0; i < int(MAX_PRICE); i++ {
-		ob.bids[i] = &PriceLevel{
-			Head: nil,
-			Tail: nil,
-		}
-		ob.asks[i] = &PriceLevel{
-			Head: nil,
-			Tail: nil,
-		}
+	for i := 0; i < MaxPrice; i++ {
+		ob.bids[i] = &PriceLevel{}
+		ob.asks[i] = &PriceLevel{}
 	}
 	return &ob
-
 }
 
 func (ob *OrderBook) InsertOrder(o *Order) {
@@ -73,72 +66,58 @@ func (ob *OrderBook) InsertOrder(o *Order) {
 // Note that there can never be both bids and offers resting at the same price level
 func getLevelVolume(pl *PriceLevel) int {
 	sum := 0
-	currentOrder := pl.Head
-
-	for currentOrder != nil {
-		sum += currentOrder.Volume
-		currentOrder = currentOrder.Next
+	for o := pl.Head; o != nil; o = o.Next {
+		sum += o.Volume
 	}
-
 	return sum
-
 }
 
 func (pl *PriceLevel) RemoveOrder(orderId int) bool {
-	// If the list is empty, there's nothing to remove
 	if pl.Head == nil {
 		return false
 	}
 
-	// If the order to remove is the head
 	if pl.Head.Id == orderId {
 		pl.Head = pl.Head.Next
-		// If the list becomes empty, update the tail
 		if pl.Head == nil {
 			pl.Tail = nil
 		}
 		return true
 	}
 
-	// Traverse the list to find the order to remove
-	current := pl.Head
-	for current.Next != nil {
-		if current.Next.Id == orderId {
-			// Remove the order by skipping it in the linked list
-			current.Next = current.Next.Next
-			// If we removed the tail, update the tail reference
-			if current.Next == nil {
-				pl.Tail = current
+	for cur := pl.Head; cur.Next != nil; cur = cur.Next {
+		if cur.Next.Id == orderId {
+			cur.Next = cur.Next.Next
+			if cur.Next == nil {
+				pl.Tail = cur
 			}
 			return true
 		}
-		current = current.Next
 	}
 
-	// If the order is not found
 	return false
 }
 
 // Start from current best bid, decrement the price and check
 // if there is any bid, if so return that price, if not, check next.
-// If no valid bid found, return MIN_PRICE.
+// If no valid bid found, return MinPrice.
 func nextBestBid(ob *OrderBook) int {
-	for price := ob.BestBid - 1; price > MIN_PRICE; price-- {
+	for price := ob.BestBid - 1; price > MinPrice; price-- {
 		if level := ob.bids[price]; level != nil && level.Head != nil {
 			return price
 		}
 	}
-	return MIN_PRICE
+	return MinPrice
 }
 
 // Start from current best offer, increment the price and check
 // if there is any offer, if so return that price, if not, check next.
-// If no valid offer found, return MAX_PRICE.
+// If no valid offer found, return MaxPrice.
 func nextBestOffer(ob *OrderBook) int {
-	for price := ob.BestOffer + 1; price < MAX_PRICE; price++ {
+	for price := ob.BestOffer + 1; price < MaxPrice; price++ {
 		if level := ob.asks[price]; level != nil && level.Head != nil {
 			return price
 		}
 	}
-	return MAX_PRICE
+	return MaxPrice
 }

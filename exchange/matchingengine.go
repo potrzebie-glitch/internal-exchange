@@ -20,12 +20,10 @@ type MatchingEngine struct {
 }
 
 func NewMatchingEngine(ob *OrderBook) MatchingEngine {
-	tradeChan := make(chan Trade, 10)
 	return MatchingEngine{
 		OrderBook:   ob,
-		TradeAction: tradeChan,
+		TradeAction: make(chan Trade, 10),
 	}
-
 }
 
 func (engine *MatchingEngine) ProcessOrder(order *Order) {
@@ -57,81 +55,43 @@ func (engine *MatchingEngine) processTrades(o *Order, p int) {
 	} else {
 		pl = engine.OrderBook.bids[p]
 	}
-	currentOrder := pl.Head
-	for currentOrder != nil && o.Volume > 0 {
+
+	for currentOrder := pl.Head; currentOrder != nil && o.Volume > 0; {
+		next := currentOrder.Next
+		qty := min(o.Volume, currentOrder.Volume)
+		o.Volume -= qty
+		currentOrder.Volume -= qty
+
+		select {
+		case engine.TradeAction <- Trade{
+			OrderId:  currentOrder.Id,
+			Price:    currentOrder.Price,
+			Volume:   qty,
+			FillTime: 1,
+		}:
+		default:
+		}
+
+		if currentOrder.Volume == 0 {
+			if !pl.RemoveOrder(currentOrder.Id) {
+				fmt.Printf("Warning: could not remove order %d\n", currentOrder.Id)
+			}
+		}
+		currentOrder = next
+	}
+
+	if pl.Head == nil {
 		if o.IsBuy {
-			if o.Price >= currentOrder.Price {
-				qty := min(o.Volume, currentOrder.Volume)
-				o.Volume -= qty
-				currentOrder.Volume -= qty
-				trade := Trade{
-					OrderId:  currentOrder.Id,
-					Price:    currentOrder.Price,
-					Volume:   qty,
-					FillTime: 1,
-				}
-
-				select {
-				case engine.TradeAction <- trade:
-				default:
-					//fmt.Println("TradeAction channel is full, dropping trade")
-				}
-
-				if currentOrder.Volume == 0 {
-					success := pl.RemoveOrder(currentOrder.Id)
-					if !success {
-						fmt.Printf("Warning - could not remove order %v", currentOrder.Id)
-					}
-				}
-			}
+			engine.OrderBook.BestOffer = nextBestOffer(engine.OrderBook)
+		} else {
+			engine.OrderBook.BestBid = nextBestBid(engine.OrderBook)
 		}
-
-		if !o.IsBuy {
-			if o.Price <= currentOrder.Price {
-				qty := min(o.Volume, currentOrder.Volume)
-				o.Volume -= qty
-				currentOrder.Volume -= qty
-				trade := Trade{
-					OrderId:  currentOrder.Id,
-					Price:    currentOrder.Price,
-					Volume:   qty,
-					FillTime: 1,
-				}
-				select {
-				case engine.TradeAction <- trade:
-				default:
-					//fmt.Println("TradeAction channel is full, dropping trade")
-				}
-				if currentOrder.Volume == 0 {
-					success := pl.RemoveOrder(currentOrder.Id)
-					if !success {
-						fmt.Printf("Warning - could not remove order %v", currentOrder.Id)
-					}
-				}
-			}
-		}
-		if pl.Head == nil {
-			if o.IsBuy {
-				engine.OrderBook.BestOffer = nextBestOffer(engine.OrderBook)
-			} else {
-				engine.OrderBook.BestBid = nextBestBid(engine.OrderBook)
-			}
-		}
-		currentOrder = currentOrder.Next
 	}
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 func (engine *MatchingEngine) StartTradeProcessor() {
 	go func() {
 		for trade := range engine.TradeAction {
-			// Pipe the trade to stdout
 			fmt.Printf("Trade executed: OrderId: %d, Price: %d, Volume: %d, FillTime: %d\n",
 				trade.OrderId, trade.Price, trade.Volume, trade.FillTime)
 		}
