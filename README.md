@@ -5,4 +5,4 @@
 This repo contains a Go implementation of a simplified exchange. Its purpose is to practice Go and to revisit concepts in trading. 
 
 ## Goals
-The aim is to get the time-complexity down to constant time, once the orderbook has been created.
+The aim is to get the time-complexity down to constant time, once the orderbook has been created and in a typical path for a liquid book.
