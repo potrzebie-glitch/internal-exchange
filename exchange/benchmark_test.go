@@ -15,7 +15,11 @@ func BenchmarkProcessOrder(b *testing.B) {
 	if err != nil {
 		b.Fatal("could not create CPU profile:", err)
 	}
-	defer cpuFile.Close()
+	defer func() {
+		if err := cpuFile.Close(); err != nil {
+			b.Error("could not close CPU profile:", err)
+		}
+	}()
 
 	// Start CPU profiling
 	if err := pprof.StartCPUProfile(cpuFile); err != nil {
