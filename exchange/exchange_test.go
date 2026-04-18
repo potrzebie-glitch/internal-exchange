@@ -4,6 +4,13 @@ import (
 	"testing"
 )
 
+func getLevelVolume(pl *PriceLevel) int {
+	if pl == nil {
+		return 0
+	}
+	return pl.TotalVolume
+}
+
 func TestOrderBookVolumeAggregateCorrect(t *testing.T) {
 	o1 := Order{Id: 1, IsBuy: true, Price: 3, Volume: 1}
 	o2 := Order{Id: 2, IsBuy: true, Price: 3, Volume: 1}

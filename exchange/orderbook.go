@@ -1,6 +1,6 @@
 package exchange
 
-const MaxPrice = 1000000
+const MaxPrice = 65536
 const MinPrice = 0
 
 // Order represents a buy or sell order in the order book.
@@ -28,33 +28,39 @@ type OrderBook struct {
 }
 
 func NewOrderBook() *OrderBook {
-	ob := OrderBook{
+	return &OrderBook{
 		BestBid:   MinPrice,
 		BestOffer: MaxPrice,
 		bids:      make([]*PriceLevel, MaxPrice),
 		asks:      make([]*PriceLevel, MaxPrice),
 	}
-	for i := 0; i < MaxPrice; i++ {
-		ob.bids[i] = &PriceLevel{}
-		ob.asks[i] = &PriceLevel{}
+}
+
+// level returns the PriceLevel for the given price, allocating it lazily on first use.
+func (ob *OrderBook) level(price int, isBuy bool) *PriceLevel {
+	if isBuy {
+		if ob.bids[price] == nil {
+			ob.bids[price] = &PriceLevel{}
+		}
+		return ob.bids[price]
 	}
-	return &ob
+	if ob.asks[price] == nil {
+		ob.asks[price] = &PriceLevel{}
+	}
+	return ob.asks[price]
 }
 
 func (ob *OrderBook) InsertOrder(o *Order) {
-	var pl *PriceLevel
+	pl := ob.level(o.Price, o.IsBuy)
 	if o.IsBuy {
-		pl = ob.bids[o.Price]
 		if o.Price > ob.BestBid {
 			ob.BestBid = o.Price
 		}
 	} else {
-		pl = ob.asks[o.Price]
 		if o.Price < ob.BestOffer {
 			ob.BestOffer = o.Price
 		}
 	}
-
 	if pl.Head == nil {
 		pl.Head = o
 		pl.Tail = o
@@ -63,11 +69,6 @@ func (ob *OrderBook) InsertOrder(o *Order) {
 		pl.Tail = o
 	}
 	pl.TotalVolume += o.Volume
-}
-
-// Note that there can never be both bids and offers resting at the same price level
-func getLevelVolume(pl *PriceLevel) int {
-	return pl.TotalVolume
 }
 
 func (pl *PriceLevel) RemoveOrder(orderId int) bool {
@@ -94,28 +95,4 @@ func (pl *PriceLevel) RemoveOrder(orderId int) bool {
 	}
 
 	return false
-}
-
-// Start from current best bid, decrement the price and check
-// if there is any bid, if so return that price, if not, check next.
-// If no valid bid found, return MinPrice.
-func nextBestBid(ob *OrderBook) int {
-	for price := ob.BestBid - 1; price > MinPrice; price-- {
-		if level := ob.bids[price]; level != nil && level.Head != nil {
-			return price
-		}
-	}
-	return MinPrice
-}
-
-// Start from current best offer, increment the price and check
-// if there is any offer, if so return that price, if not, check next.
-// If no valid offer found, return MaxPrice.
-func nextBestOffer(ob *OrderBook) int {
-	for price := ob.BestOffer + 1; price < MaxPrice; price++ {
-		if level := ob.asks[price]; level != nil && level.Head != nil {
-			return price
-		}
-	}
-	return MaxPrice
 }

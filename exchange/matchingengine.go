@@ -63,19 +63,13 @@ func NewMatchingEngine(ob *OrderBook) MatchingEngine {
 
 func (engine *MatchingEngine) ProcessOrder(order *Order) {
 	if order.IsBuy && order.Price >= engine.OrderBook.BestOffer {
-		for price := engine.OrderBook.BestOffer; price <= order.Price; price++ {
-			engine.processTrades(order, price)
-			if order.Volume == 0 {
-				break
-			}
+		for engine.OrderBook.BestOffer <= order.Price && order.Volume > 0 {
+			engine.processTrades(order, engine.OrderBook.BestOffer)
 		}
 	}
 	if !order.IsBuy && order.Price <= engine.OrderBook.BestBid {
-		for price := engine.OrderBook.BestBid; price >= order.Price; price-- {
-			engine.processTrades(order, price)
-			if order.Volume == 0 {
-				break
-			}
+		for engine.OrderBook.BestBid >= order.Price && order.Volume > 0 {
+			engine.processTrades(order, engine.OrderBook.BestBid)
 		}
 	}
 	if order.Volume > 0 {
@@ -91,34 +85,46 @@ func (engine *MatchingEngine) processTrades(o *Order, p int) {
 		pl = engine.OrderBook.bids[p]
 	}
 
-	for currentOrder := pl.Head; currentOrder != nil && o.Volume > 0; {
-		next := currentOrder.Next
-		qty := min(o.Volume, currentOrder.Volume)
-		o.Volume -= qty
-		currentOrder.Volume -= qty
-		pl.TotalVolume -= qty
+	if pl != nil {
+		for currentOrder := pl.Head; currentOrder != nil && o.Volume > 0; {
+			next := currentOrder.Next
+			qty := min(o.Volume, currentOrder.Volume)
+			o.Volume -= qty
+			currentOrder.Volume -= qty
+			pl.TotalVolume -= qty
 
-		engine.Ring.Push(Trade{
-			OrderId:  currentOrder.Id,
-			Price:    currentOrder.Price,
-			Volume:   qty,
-			FillTime: 1,
-		})
+			engine.Ring.Push(Trade{
+				OrderId:  currentOrder.Id,
+				Price:    currentOrder.Price,
+				Volume:   qty,
+				FillTime: 1,
+			})
 
-		if currentOrder.Volume == 0 {
-			pl.Head = next
-			if next == nil {
-				pl.Tail = nil
+			if currentOrder.Volume == 0 {
+				pl.Head = next
+				if next == nil {
+					pl.Tail = nil
+				}
 			}
+			currentOrder = next
 		}
-		currentOrder = next
 	}
 
-	if pl.Head == nil {
+	// Advance the best price pointer to the next occupied level (or the sentinel)
+	// so that BestOffer/BestBid always reflects a real order or the boundary value.
+	if pl == nil || pl.Head == nil {
 		if o.IsBuy {
-			engine.OrderBook.BestOffer = nextBestOffer(engine.OrderBook)
+			next := p + 1
+			for next < MaxPrice && (engine.OrderBook.asks[next] == nil || engine.OrderBook.asks[next].Head == nil) {
+				next++
+			}
+			engine.OrderBook.BestOffer = next
 		} else {
-			engine.OrderBook.BestBid = nextBestBid(engine.OrderBook)
+			next := p - 1
+			for next > MinPrice && (engine.OrderBook.bids[next] == nil || engine.OrderBook.bids[next].Head == nil) {
+				next--
+			}
+			engine.OrderBook.BestBid = next
 		}
 	}
 }
