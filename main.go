@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"internal-exchange/exchange"
 	"math/rand"
@@ -10,11 +11,13 @@ import (
 const ITERATIONS = 10000000
 
 func main() {
+	verbose := flag.Bool("v", false, "print each trade")
+	flag.Parse()
 	src := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(src)
 	orderBook := exchange.NewOrderBook()
 	engine := exchange.NewMatchingEngine(orderBook)
-	engine.StartTradeProcessor()
+	engine.StartTradeProcessor(*verbose)
 	start := time.Now()
 	for i := 0; i < ITERATIONS; i++ {
 		isBuy := r.Intn(2) == 1

@@ -89,11 +89,13 @@ func (engine *MatchingEngine) processTrades(o *Order, p int) {
 	}
 }
 
-func (engine *MatchingEngine) StartTradeProcessor() {
+func (engine *MatchingEngine) StartTradeProcessor(verbose bool) {
 	go func() {
 		for trade := range engine.TradeAction {
-			fmt.Printf("Trade executed: OrderId: %d, Price: %d, Volume: %d, FillTime: %d\n",
-				trade.OrderId, trade.Price, trade.Volume, trade.FillTime)
+			if verbose {
+				fmt.Printf("Trade executed: OrderId: %d, Price: %d, Volume: %d, FillTime: %d\n",
+					trade.OrderId, trade.Price, trade.Volume, trade.FillTime)
+			}
 		}
 	}()
 }
