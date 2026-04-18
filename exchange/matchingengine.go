@@ -1,8 +1,6 @@
 package exchange
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // Trade represents the transaction resulting from a matching bid and offer.
 type Trade struct {
@@ -61,6 +59,7 @@ func (engine *MatchingEngine) processTrades(o *Order, p int) {
 		qty := min(o.Volume, currentOrder.Volume)
 		o.Volume -= qty
 		currentOrder.Volume -= qty
+		pl.TotalVolume -= qty
 
 		select {
 		case engine.TradeAction <- Trade{
@@ -73,8 +72,9 @@ func (engine *MatchingEngine) processTrades(o *Order, p int) {
 		}
 
 		if currentOrder.Volume == 0 {
-			if !pl.RemoveOrder(currentOrder.Id) {
-				fmt.Printf("Warning: could not remove order %d\n", currentOrder.Id)
+			pl.Head = next
+			if next == nil {
+				pl.Tail = nil
 			}
 		}
 		currentOrder = next

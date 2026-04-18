@@ -14,8 +14,9 @@ type Order struct {
 
 // PriceLevel keeps track of not yet executed orders for a given price level.
 type PriceLevel struct {
-	Head *Order
-	Tail *Order
+	Head        *Order
+	Tail        *Order
+	TotalVolume int
 }
 
 // OrderBook stores all orders for all price levels of a given book. It also keeps track of best bid and offer.
@@ -61,15 +62,12 @@ func (ob *OrderBook) InsertOrder(o *Order) {
 		pl.Tail.Next = o
 		pl.Tail = o
 	}
+	pl.TotalVolume += o.Volume
 }
 
 // Note that there can never be both bids and offers resting at the same price level
 func getLevelVolume(pl *PriceLevel) int {
-	sum := 0
-	for o := pl.Head; o != nil; o = o.Next {
-		sum += o.Volume
-	}
-	return sum
+	return pl.TotalVolume
 }
 
 func (pl *PriceLevel) RemoveOrder(orderId int) bool {
