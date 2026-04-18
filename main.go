@@ -26,7 +26,6 @@ func main() {
 			Price:  price,
 			Volume: volume,
 		}
-		//fmt.Printf("Market is %v @ %v", engine.OrderBook.BestBid, engine.OrderBook.BestOffer)
 		engine.ProcessOrder(order)
 
 	}
